@@ -71,7 +71,20 @@ gh pr merge --squash --delete-branch
 Watch Argo CD (click **Refresh**), then reload http://localhost:9898. The version changes to 6.15.0.
 (If the app page is blank right after a rollout, wait ~5s and reload. The port-forward reconnects to the new pods.)
 
-### 2. Change an environment variable
+### 2. Scale up
+
+```bash
+git checkout main && git pull
+git checkout -b scale
+sed -i '' 's/replicas: 2/replicas: 3/' app/deployment.yaml
+git commit -am "Scale to 3 replicas"
+git push -u origin scale
+gh pr create --fill
+gh pr merge --squash --delete-branch
+```
+> 💬 "Same as changing the ECS desired count, but reviewed in a PR. Look: a third pod in the tree."
+
+### 3. Change an environment variable
 
 ```bash
 git checkout main && git pull
@@ -86,20 +99,7 @@ gh pr merge --squash --delete-branch
 
 Reload http://localhost:9898. The page is green with the new message.
 
-### 3. Scale up
-
-```bash
-git checkout main && git pull
-git checkout -b scale
-sed -i '' 's/replicas: 2/replicas: 3/' app/deployment.yaml
-git commit -am "Scale to 3 replicas"
-git push -u origin scale
-gh pr create --fill
-gh pr merge --squash --delete-branch
-```
-> 💬 "Same as changing the ECS desired count, but reviewed in a PR. Look: a third pod in the tree."
-
-### 4. Break it, then fix it
+### 4. (Optional) Break it, then fix it
 
 ```bash
 git checkout main && git pull
