@@ -17,6 +17,7 @@ spec:
       labels:
         app: podinfo
     spec:
+      revisionHistoryLimit: 2
       containers:
         - name: podinfo
           # image = image in the task definition
