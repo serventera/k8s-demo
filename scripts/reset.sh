@@ -13,5 +13,5 @@ else
   git push origin main
 fi
 # Remove leftover local demo branches
-git branch --format='%(refname:short)' | grep -v '^main$' | xargs -r git branch -D
+git branch --format='%(refname:short)' | grep -v '^main$' | xargs -r git branch -D || true
 echo "Reset done. Argo CD will sync within ~30s."
