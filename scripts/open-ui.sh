@@ -9,6 +9,6 @@ echo "Press Ctrl+C to stop."
 
 # Re-start port-forwards if they drop (e.g. when pods are replaced)
 trap 'kill 0' EXIT
-(while true; do kubectl -n argocd port-forward svc/argocd-server 8080:443 >/dev/null 2>&1; sleep 1; done) &
-(while true; do kubectl -n demo port-forward svc/podinfo 9898:9898 >/dev/null 2>&1; sleep 1; done) &
+(while true; do kubectl -n argocd port-forward svc/argocd-server 8080:443 >/dev/null 2>&1 || true; sleep 1; done) &
+(while true; do kubectl -n demo port-forward svc/podinfo 9898:9898 >/dev/null 2>&1 || true; sleep 1; done) &
 wait

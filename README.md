@@ -69,6 +69,7 @@ gh pr merge --squash --delete-branch
 > 💬 "A deploy is just a pull request. Merge it, and Argo CD sees Git changed: OutOfSync → Synced → Healthy."
 
 Watch Argo CD (click **Refresh**), then reload http://localhost:9898. The version changes to 6.15.0.
+(If the app page is blank right after a rollout, wait ~5s and reload. The port-forward reconnects to the new pods.)
 
 ### 2. Change an environment variable
 
