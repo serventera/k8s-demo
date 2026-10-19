@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# Delete the local kind cluster (and everything in it)
+# Delete the local OrbStack Kubernetes cluster (and everything in it)
 set -euo pipefail
-kind delete cluster --name k8s-demo
+orb delete -f k8s

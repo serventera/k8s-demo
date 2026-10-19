@@ -14,15 +14,16 @@ scripts/              # setup, open UIs, reset, teardown
 ## Prerequisites (macOS)
 
 ```bash
-brew install kind kubectl gh git
+brew install --cask orbstack
+brew install kubectl gh git
 gh auth login
 ```
-Docker Desktop must be running.
+OrbStack must be running (it provides the local Kubernetes cluster).
 
 ## Before the demo
 
 ```bash
-./scripts/setup.sh     # kind cluster + Argo CD v3.5.5 + the app (~3-5 min)
+./scripts/setup.sh     # OrbStack Kubernetes + Argo CD v3.5.5 + the app (~3-5 min)
 ./scripts/open-ui.sh   # keep this terminal open
 ```
 - Argo CD: https://localhost:8080 (accept the self-signed cert; user `admin`, password printed by the script)
@@ -125,5 +126,5 @@ git checkout main && git pull
 
 ```bash
 ./scripts/reset.sh      # put app/ back to the start (image 6.14.1, 2 replicas, original message)
-./scripts/teardown.sh   # delete the cluster
+./scripts/teardown.sh   # delete the OrbStack Kubernetes cluster
 ```

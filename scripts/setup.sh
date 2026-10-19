@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
-# Create a local kind cluster, install Argo CD, and point it at app/
+# Start OrbStack's built-in Kubernetes, install Argo CD, and point it at app/
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ARGOCD_VERSION=v3.5.5
-CLUSTER=k8s-demo
 
-docker info >/dev/null 2>&1 || { echo "Docker Desktop is not running. Start it first."; exit 1; }
-
-if ! kind get clusters | grep -qx "$CLUSTER"; then
-  kind create cluster --name "$CLUSTER"
-fi
-kubectl config use-context "kind-$CLUSTER"
+command -v orb >/dev/null || { echo "OrbStack is not installed: brew install --cask orbstack"; exit 1; }
+orb start k8s
+until kubectl config get-contexts orbstack >/dev/null 2>&1; do sleep 2; done
+# Always use the local OrbStack cluster, never a real one
+kubectl config use-context orbstack
+until kubectl get nodes >/dev/null 2>&1; do sleep 2; done
 
 echo "Installing Argo CD $ARGOCD_VERSION..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
