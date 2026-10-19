@@ -1,0 +1,15 @@
+# Service = a stable internal address + load balancer for the pods (like ECS service discovery)
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo
+  namespace: demo
+spec:
+  # ClusterIP = reachable only inside the cluster (we use port-forward to see it)
+  type: ClusterIP
+  # selector = send traffic to pods with this label
+  selector:
+    app: podinfo
+  ports:
+    - port: 9898
+      targetPort: 9898

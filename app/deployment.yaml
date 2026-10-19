@@ -1,0 +1,49 @@
+# Deployment = an ECS service: keeps N copies of your app running
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  namespace: demo
+spec:
+  # replicas = ECS desired count
+  replicas: 2
+  # selector = which pods belong to this Deployment
+  selector:
+    matchLabels:
+      app: podinfo
+  # template = the ECS task definition
+  template:
+    metadata:
+      labels:
+        app: podinfo
+    spec:
+      containers:
+        - name: podinfo
+          # image = image in the task definition
+          image: ghcr.io/stefanprodan/podinfo:6.14.1
+          ports:
+            - containerPort: 9898
+          # env = environment in the task definition
+          env:
+            - name: PODINFO_UI_MESSAGE
+              value: "Hello from Kubernetes"
+            - name: PODINFO_UI_COLOR
+              value: "#34577c"
+          # readinessProbe = ALB target health check (send traffic only when ready)
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9898
+          # livenessProbe = container health check (restart if it fails)
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9898
+          # resources = cpu/memory in the task definition
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

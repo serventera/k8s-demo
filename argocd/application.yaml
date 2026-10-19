@@ -1,0 +1,24 @@
+# Application = tells Argo CD: "make the cluster look like this folder in Git"
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo
+  namespace: argocd
+spec:
+  project: default
+  # source = where the desired state lives (Git)
+  source:
+    repoURL: https://github.com/serventera/k8s-demo.git
+    targetRevision: main
+    path: app
+  # destination = where to deploy it
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo
+  syncPolicy:
+    # automated = deploy on every Git change; prune = delete removed things; selfHeal = undo manual changes
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
