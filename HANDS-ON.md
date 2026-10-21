@@ -1,24 +1,47 @@
-# Hands-on: your first Kubernetes deployment
+# Hands-on: deploy with Git + Argo CD
 
-You'll run Kubernetes on your own Mac and deploy a small web app ([podinfo](https://github.com/stefanprodan/podinfo)).
-
-- **Part A (everyone):** deploy and change the app yourself with `kubectl`.
-- **Part B (optional):** let **Argo CD** deploy it from Git, like in the demo.
+You'll run your own Kubernetes cluster on your Mac, with Argo CD deploying a small app from **your own GitHub repo**. Then you'll change the app the GitOps way: edit → pull request → merge → Argo CD deploys it.
 
 ---
 
-## Part A: Deploy with kubectl
+## Part 1: Before the session (at home, ~15 min)
 
-### 1. Turn on Kubernetes in OrbStack
+Please do this **before** the session. It downloads about 1 GB, and conference Wi-Fi is slow.
 
-If you don't have OrbStack yet: `brew install --cask orbstack`, then open it from Applications.
+### 1. Install the tools
 
-In OrbStack: **Settings → Kubernetes → Enable Kubernetes**, then wait about a minute.
-(Or in a terminal: `orb start k8s`)
+You need [Homebrew](https://brew.sh). Then:
 
-### 2. Connect kubectl to your local cluster
+```bash
+brew install --cask orbstack
+brew install kubectl git gh
+```
 
-OrbStack already added a connection called `orbstack` to your kubectl config. Select it:
+Open **OrbStack** once from Applications and finish its setup.
+
+> Using Docker Desktop? Quit it while you use OrbStack, so they don't compete for memory.
+
+### 2. Log in to GitHub
+
+```bash
+gh auth login        # choose: GitHub.com → HTTPS → Login with a web browser
+```
+
+### 3. Create your own copy of the demo repo
+
+```bash
+cd ~
+gh repo create k8s-demo --public --template serventera/k8s-demo --clone
+cd k8s-demo
+```
+
+This creates `github.com/<your-username>/k8s-demo`. It must be **public**, so Argo CD can read it without a password.
+
+### 4. Connect kubectl to your local cluster
+
+Turn on Kubernetes in OrbStack: **Settings → Kubernetes → Enable Kubernetes** (or run `orb start k8s`), then wait about a minute.
+
+OrbStack adds a connection called `orbstack` to your kubectl config by itself. Select it and check:
 
 ```bash
 kubectl config use-context orbstack
@@ -26,136 +49,119 @@ kubectl get nodes
 ```
 ✅ You should see one node named `orbstack` with status `Ready`.
 
+> 💡 `kubectl config get-contexts` lists every cluster kubectl can talk to; the one marked `*` is where your commands go. Make sure it's `orbstack` before you apply anything.
+
 <details>
-<summary>❌ <code>kubectl: command not found</code>, or <code>kubectl version --client</code> shows something older than v1.30?</summary>
+<summary>❌ <code>kubectl: command not found</code>, or an old version?</summary>
 
 ```bash
 brew install kubectl      # or: brew upgrade kubectl
 which -a kubectl          # the first line should be /opt/homebrew/bin/kubectl
 ```
-If an old one in `/usr/local/bin` comes first, open a new terminal or run `/opt/homebrew/bin/kubectl` directly.
 </details>
 
-> 💡 `kubectl config get-contexts` lists every cluster you can talk to. The one with `*` is the one your commands go to. **Always check it says `orbstack`** before changing anything.
-
-### 3. Get the files
+### 5. Deploy the app with kubectl
 
 ```bash
-cd ~
-git clone https://github.com/serventera/k8s-demo.git
-cd k8s-demo
-```
-Open the folder in your editor and have a look at `app/deployment.yaml` and `app/service.yaml`.
-
-### 4. Deploy
-
-```bash
+cd ~/k8s-demo
 kubectl create namespace demo     # a namespace is like a folder for your app
-kubectl apply -f app/             # send both files to Kubernetes
+kubectl apply -f app/             # sends deployment.yaml + service.yaml to Kubernetes
 kubectl get pods -n demo          # repeat until both pods show Running
 ```
 
-### 5. Open the app
-
-In a **second terminal**, run this and leave it open:
+Open the app. Run this in a second terminal and leave it open:
 
 ```bash
 kubectl port-forward -n demo svc/podinfo 9898:9898
 ```
-Open http://localhost:9898 🎉
+Then go to http://localhost:9898 🎉
 
-> If the page stops loading after a change, the old pods it was connected to are gone. Press Ctrl+C and run the port-forward again.
+To change the app: edit `app/deployment.yaml`, save, and run `kubectl apply -f app/` again. Try changing the image tag to `6.15.0`, `replicas` to `3`, or the message. If the page stops loading after a change, press Ctrl+C and start the port-forward again.
 
-### 6. Exercises
+### 6. Start Kubernetes + Argo CD + the app (optional)
 
-For each one: **edit `app/deployment.yaml` → save → `kubectl apply -f app/` → watch.**
-Watch with: `kubectl get pods -n demo -w` (Ctrl+C to stop).
+Stop the port-forward from step 5 first (Ctrl+C). Argo CD will take over the app you deployed with kubectl.
 
-1. **Desired state:** delete a pod and watch Kubernetes replace it.
-   ```bash
-   kubectl get pods -n demo
-   kubectl delete pod -n demo <one-pod-name>
-   kubectl get pods -n demo
-   ```
-2. **New version:** change the image tag `6.14.1` → `6.15.0`, then apply.
-   Old pods are replaced one by one. Restart the port-forward and reload: the version number changes.
-3. **Scale:** `replicas: 2` → `replicas: 3`, then apply. A third pod starts.
-4. **Your message:** change `PODINFO_UI_MESSAGE` to anything, and `PODINFO_UI_COLOR` to any color (e.g. `"#e91e63"`), then apply. Reload the app.
-5. **Break it:** change the tag to `9.9.9` (doesn't exist), then apply.
-   ```bash
-   kubectl get pods -n demo                    # new pod: ImagePullBackOff, old pods still Running
-   kubectl describe pod -n demo <bad-pod-name> # read the Events at the bottom
-   kubectl rollout undo -n demo deployment/podinfo   # roll back
-   ```
-   Then set the tag back in the file too, so the file and the cluster match again.
+```bash
+./scripts/setup.sh
+```
 
-### Handy commands
+This takes a few minutes. It should end with `Done. Run ./scripts/open-ui.sh`.
 
-| Command | What it does |
-|---|---|
-| `kubectl get pods -n demo` | list pods |
-| `kubectl describe pod -n demo <name>` | details + events (why is it failing?) |
-| `kubectl logs -n demo <name>` | app logs |
-| `kubectl rollout status -n demo deployment/podinfo` | wait for a rollout to finish |
-| `kubectl rollout undo -n demo deployment/podinfo` | go back to the previous version |
+✅ **You're ready.** You can close everything; it'll still be there at the session.
+(If you restarted your Mac, just open OrbStack again.)
 
 ---
 
-## Part B (optional): Let Argo CD deploy from Git
+## Part 2: During the session
 
-So far **you** ran `kubectl apply`. With Argo CD, you only change Git, and Argo CD applies it for you.
-You need a GitHub account, and Argo CD downloads ~500 MB.
+### Open the UIs
 
-### 1. Your own copy of the repo
+In a terminal, run this and **leave it open**:
+
 ```bash
-brew install gh          # if you don't have it
-gh auth login            # GitHub.com → HTTPS → Login with a web browser
-cd ~
-rm -rf k8s-demo          # remove the clone from Part A
-gh repo create k8s-demo --public --template serventera/k8s-demo --clone
-cd k8s-demo
+cd ~/k8s-demo
+./scripts/open-ui.sh
 ```
-This creates the public repo `github.com/<your-username>/k8s-demo`.
-
-### 2. Install Argo CD and hand it the app
-```bash
-./scripts/setup.sh       # installs Argo CD and tells it to watch YOUR repo (~3-5 min)
-./scripts/open-ui.sh     # leave this terminal open
-```
-Stop the port-forward from Part A first (Ctrl+C); `open-ui.sh` uses the same port.
 
 | What | URL | Login |
 |---|---|---|
-| Argo CD | https://localhost:8080 | `admin`, password printed by the script |
-| App | http://localhost:9898 | none |
+| Argo CD | https://localhost:8080 | user `admin`, password printed by the script |
+| Your app | http://localhost:9898 | none |
 
-Click through the certificate warning, then click the **podinfo** tile.
-Argo CD takes over the app you deployed in Part A, so from now on Git is in charge.
+Your browser will warn about the certificate on 8080. That's expected, so click through ("Advanced" → "Proceed").
+In Argo CD, click the **podinfo** tile to see your app.
 
-### 3. Change the app the GitOps way
+### How every change works
+
+Open a **second** terminal, then for each exercise:
+
 ```bash
-git checkout main && git pull
-git checkout -b my-change              # new name each time
-# edit app/deployment.yaml and save
-git commit -am "My change"
-git push -u origin my-change
-gh pr create --fill
-gh pr merge --squash --delete-branch
+cd ~/k8s-demo
+git checkout main && git pull           # 1. start from the latest main
+git checkout -b my-change               # 2. new branch (use a new name each time)
+# 3. edit app/deployment.yaml in your editor and save
+git commit -am "Describe your change"   # 4. commit
+git push -u origin my-change            # 5. push
+gh pr create --fill                     # 6. open a pull request
+gh pr merge --squash --delete-branch    # 7. merge it
 ```
-In Argo CD click **Refresh** (or wait ~30 s): **OutOfSync → Synced → Healthy**.
 
-Try: a new version, replicas, your message. Then try to cheat:
-```bash
-kubectl -n demo scale deployment podinfo --replicas=5
-```
-Argo CD puts it back to what Git says. **Git wins.**
+Then go to Argo CD and click **Refresh** at the top (or wait ~30 s). Watch it go **OutOfSync → Synced → Healthy**.
+
+### Exercises (all in `app/deployment.yaml`)
+
+1. **New version:** change the image tag `6.14.1` → `6.15.0`.
+   Reload http://localhost:9898. The version number changes.
+2. **Scale:** change `replicas: 2` → `replicas: 3`.
+   A third pod appears in the Argo CD tree.
+3. **Your message:** change `PODINFO_UI_MESSAGE` to anything you like, and `PODINFO_UI_COLOR` to any color (e.g. `"#e91e63"`).
+   Reload the app. It shows your message and color.
+4. **Bonus: break it.** Change the tag to `9.9.9` (doesn't exist).
+   Click the red pod → **Events** to see `ImagePullBackOff`. Your old pods keep running, so the app stays up.
+   Fix it with `gh pr revert <PR number>`, then `gh pr merge <new PR number> --squash --delete-branch`.
+5. **Bonus: self-heal.** Try to cheat with kubectl:
+   ```bash
+   kubectl -n demo scale deployment podinfo --replicas=5
+   ```
+   Watch Argo CD put it back to what Git says. **Git wins.**
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| App page blank right after a change | Wait ~5 s and reload; the connection moves to the new pods |
+| `ERR_CONNECTION_REFUSED` on 8080 / 9898 | `open-ui.sh` isn't running; start it again |
+| Argo CD doesn't change | Click **Refresh**; check your PR was actually merged on GitHub |
+| `git pull` conflict / messy branch | `git checkout main && git reset --hard origin/main` |
+| Anything else | Run `./scripts/setup.sh` again (it's safe to re-run) |
 
 ---
 
-## Clean up
+## Part 3: Clean up (after the session)
 
 ```bash
-kubectl delete namespace demo          # remove the app
-kubectl delete namespace argocd        # remove Argo CD (if you did Part B)
+./scripts/teardown.sh      # deletes the local Kubernetes cluster
 ```
-Or delete the whole local cluster: `orb delete -f k8s` (turn Kubernetes on again later with `orb start k8s`). If you did Part B, you can also delete your GitHub repo.
+
+You can also delete your GitHub repo `k8s-demo` if you don't want to keep it.
