@@ -82,6 +82,17 @@ To change the app: edit `app/deployment.yaml`, save, and run `kubectl apply -f a
 
 Stop the port-forward from step 5 first (Ctrl+C). Argo CD will take over the app you deployed with kubectl.
 
+**Tip: download the images first** (~1.3 GB unpacked). OrbStack's Kubernetes uses the same images as its Docker, so `setup.sh` will then start much faster. You can run this early, e.g. while doing steps 4–5:
+
+```bash
+docker context use orbstack
+docker pull quay.io/argoproj/argocd:v3.5.5
+docker pull ghcr.io/dexidp/dex:v2.45.1
+docker pull public.ecr.aws/docker/library/redis:8.2.3-alpine
+docker pull ghcr.io/stefanprodan/podinfo:6.14.1
+docker pull ghcr.io/stefanprodan/podinfo:6.15.0
+```
+
 ```bash
 ./scripts/setup.sh
 ```
