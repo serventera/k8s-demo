@@ -5,7 +5,16 @@ cd "$(dirname "$0")/.."
 
 ARGOCD_VERSION=v3.5.5
 
-command -v orb >/dev/null || { echo "OrbStack is not installed: brew install --cask orbstack"; exit 1; }
+for tool in orb kubectl git gh; do
+  command -v "$tool" >/dev/null || { echo "Missing $tool. Install: brew install --cask orbstack && brew install kubectl git gh"; exit 1; }
+done
+
+# Argo CD watches the GitHub repo this folder was cloned from (yours, not the presenter's)
+REPO_URL=$(git remote get-url origin | sed -E 's#^git@github.com:#https://github.com/#; s#(\.git)?$#.git#')
+GIT_TERMINAL_PROMPT=0 git ls-remote "$REPO_URL" >/dev/null 2>&1 \
+  || { echo "Argo CD can't read $REPO_URL. Make sure the repo is public."; exit 1; }
+echo "Argo CD will watch: $REPO_URL"
+
 orb start k8s
 until kubectl config get-contexts orbstack >/dev/null 2>&1; do sleep 2; done
 # Always use the local OrbStack cluster, never a real one
@@ -27,7 +36,7 @@ kubectl -n argocd rollout status deployment argocd-server --timeout=300s
 kubectl -n argocd rollout status deployment argocd-repo-server --timeout=300s
 kubectl -n argocd rollout status statefulset argocd-application-controller --timeout=300s
 
-kubectl apply -f argocd/application.yaml
+sed "s#repoURL: .*#repoURL: $REPO_URL#" argocd/application.yaml | kubectl apply -f -
 
 echo "Waiting for the app to be deployed by Argo CD..."
 until kubectl -n demo get deployment podinfo >/dev/null 2>&1; do sleep 3; done
